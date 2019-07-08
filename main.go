@@ -17,6 +17,53 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type wikiPage struct {
+	Type         string `json:"type"`
+	Title        string `json:"title"`
+	Displaytitle string `json:"displaytitle"`
+	Namespace    struct {
+		ID   int    `json:"id"`
+		Text string `json:"text"`
+	} `json:"namespace"`
+	WikibaseItem string `json:"wikibase_item"`
+	Titles       struct {
+		Canonical  string `json:"canonical"`
+		Normalized string `json:"normalized"`
+		Display    string `json:"display"`
+	} `json:"titles"`
+	Pageid      int       `json:"pageid"`
+	Lang        string    `json:"lang"`
+	Dir         string    `json:"dir"`
+	Revision    string    `json:"revision"`
+	Tid         string    `json:"tid"`
+	Timestamp   time.Time `json:"timestamp"`
+	Description string    `json:"description"`
+	ContentUrls struct {
+		Desktop struct {
+			Page      string `json:"page"`
+			Revisions string `json:"revisions"`
+			Edit      string `json:"edit"`
+			Talk      string `json:"talk"`
+		} `json:"desktop"`
+		Mobile struct {
+			Page      string `json:"page"`
+			Revisions string `json:"revisions"`
+			Edit      string `json:"edit"`
+			Talk      string `json:"talk"`
+		} `json:"mobile"`
+	} `json:"content_urls"`
+	APIUrls struct {
+		Summary      string `json:"summary"`
+		Metadata     string `json:"metadata"`
+		References   string `json:"references"`
+		Media        string `json:"media"`
+		EditHTML     string `json:"edit_html"`
+		TalkPageHTML string `json:"talk_page_html"`
+	} `json:"api_urls"`
+	Extract     string `json:"extract"`
+	ExtractHTML string `json:"extract_html"`
+}
+
 func main() {
 	// Create Server and Route Handlers
 	r := mux.NewRouter()
@@ -60,10 +107,6 @@ func waitForShutdown(srv *http.Server) {
 	os.Exit(0)
 }
 
-type wikiPage struct {
-	extract string
-}
-
 func getWiki(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := http.Get("https://en.wikipedia.org/api/rest_v1/page/summary/stack_overflow")
@@ -77,8 +120,8 @@ func getWiki(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.Unmarshal(body, &jsonBody)
-
-	log.Printf(string(body))
+	log.Printf(jsonBody.Extract)
+	w.Write([]byte(fmt.Sprintf(jsonBody.Extract)))
 
 }
 
