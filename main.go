@@ -68,8 +68,6 @@ func main() {
 	// Create Server and Route Handlers
 	r := mux.NewRouter()
 
-	r.HandleFunc("/", handler)
-	// r.HandleFunc("/read", dbRead)
 	r.HandleFunc("/getwiki", getWiki)
 
 	srv := &http.Server{
@@ -167,48 +165,3 @@ func getWiki(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(wikiExtract)))
 
 }
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	name := query.Get("name")
-	if name == "" {
-		name = "World!"
-	}
-	log.Printf("Received request for %s\n", name)
-	w.Write([]byte(fmt.Sprintf("Hello, %s\n", name)))
-}
-
-// func dbRead(w http.ResponseWriter, r *http.Request) {
-
-// 	db, err := sql.Open("postgres", "user=postgres dbname=bot host=localhost port=54320 sslmode=disable")
-
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer db.Close()
-
-// 	var (
-// 		name  string
-// 		value string
-// 	)
-// 	rows, err := db.Query("select name, value from version")
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	defer rows.Close()
-// 	for rows.Next() {
-// 		err := rows.Scan(&name, &value)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		log.Println("successful")
-// 		log.Println(name, value)
-// 	}
-// 	err = rows.Err()
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-
-// 	log.Printf("Received request for %s\n", name)
-// 	w.Write([]byte(fmt.Sprintf("Goodbye, %s\n", name)))
-// }
