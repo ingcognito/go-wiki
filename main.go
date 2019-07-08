@@ -69,7 +69,7 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", handler)
-	r.HandleFunc("/read", dbRead)
+	// r.HandleFunc("/read", dbRead)
 	r.HandleFunc("/getwiki", getWiki)
 
 	srv := &http.Server{
@@ -109,19 +109,62 @@ func waitForShutdown(srv *http.Server) {
 
 func getWiki(w http.ResponseWriter, r *http.Request) {
 
-	resp, err := http.Get("https://en.wikipedia.org/api/rest_v1/page/summary/stack_overflow")
-	var jsonBody wikiPage
+	var wikiTitle string
+	var wikiExtract string
 
-	body, err := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
+	query := r.URL.Query()
+	wikiTitle = query.Get("title")
+	if wikiTitle == "" {
+		w.Write([]byte(fmt.Sprintf("ENTER A TITLE")))
+		return
+	}
+
+	db, err := sql.Open("postgres", "user=postgres dbname=bot host=localhost port=54320 sslmode=disable")
 
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
 
-	json.Unmarshal(body, &jsonBody)
-	log.Printf(jsonBody.Extract)
-	w.Write([]byte(fmt.Sprintf(jsonBody.Extract)))
+	sqlStatement := `SELECT title FROM pages where title=$1;`
+	rows, err := db.Query(sqlStatement, wikiTitle)
+	var rowCount int = 0
+	for rows.Next() {
+		rowCount++
+		err := rows.Scan(&wikiTitle, &wikiExtract)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("this is coming from the database")
+	}
+	if rowCount == 0 {
+		resp, err := http.Get(fmt.Sprintf("https://en.wikipedia.org/api/rest_v1/page/summary/%s", wikiTitle))
+		if err != nil {
+			log.Fatal(err)
+		}
+		var jsonBody wikiPage
+
+		body, err := ioutil.ReadAll(resp.Body)
+		defer resp.Body.Close()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		json.Unmarshal(body, &jsonBody)
+		// log.Printf(jsonBody.Extract)
+		// w.Write([]byte(fmt.Sprintf(jsonBody.Extract)))
+
+		wikiTitle = jsonBody.Title
+		wikiExtract = jsonBody.Extract
+
+		sqlStatement := `INSERT INTO pages (title, extract) VALUES ($1, $2)`
+		_, err = db.Exec(sqlStatement, wikiTitle, wikiExtract)
+		if err != nil {
+			panic(err)
+		}
+	}
+	w.Write([]byte(fmt.Sprintf(wikiExtract)))
 
 }
 
@@ -135,37 +178,37 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("Hello, %s\n", name)))
 }
 
-func dbRead(w http.ResponseWriter, r *http.Request) {
+// func dbRead(w http.ResponseWriter, r *http.Request) {
 
-	db, err := sql.Open("postgres", "user=postgres dbname=bot host=localhost port=54320 sslmode=disable")
+// 	db, err := sql.Open("postgres", "user=postgres dbname=bot host=localhost port=54320 sslmode=disable")
 
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer db.Close()
 
-	var (
-		name  string
-		value string
-	)
-	rows, err := db.Query("select name, value from version")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		err := rows.Scan(&name, &value)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println("successful")
-		log.Println(name, value)
-	}
-	err = rows.Err()
-	if err != nil {
-		log.Fatal(err)
-	}
+// 	var (
+// 		name  string
+// 		value string
+// 	)
+// 	rows, err := db.Query("select name, value from version")
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	defer rows.Close()
+// 	for rows.Next() {
+// 		err := rows.Scan(&name, &value)
+// 		if err != nil {
+// 			log.Fatal(err)
+// 		}
+// 		log.Println("successful")
+// 		log.Println(name, value)
+// 	}
+// 	err = rows.Err()
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
 
-	log.Printf("Received request for %s\n", name)
-	w.Write([]byte(fmt.Sprintf("Goodbye, %s\n", name)))
-}
+// 	log.Printf("Received request for %s\n", name)
+// 	w.Write([]byte(fmt.Sprintf("Goodbye, %s\n", name)))
+// }
