@@ -1,14 +1,19 @@
 version: '3'
 
 services:
-  go-wiki:
+  gowiki:
     build: .
     ports:
       - "8080:8080"
     links:
       - db
+    volumes:
+      - .:/app
 
   db:
     image: postgres:9.6-alpine
-    ports:
-      - "5432:5432"
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    
+    
+    

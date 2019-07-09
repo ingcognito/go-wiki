@@ -87,6 +87,7 @@ func main() {
 
 	// Graceful Shutdown
 	waitForShutdown(srv)
+
 }
 
 func waitForShutdown(srv *http.Server) {
@@ -117,12 +118,13 @@ func getWiki(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := sql.Open("postgres", "user=postgres dbname=bot host=localhost port=54320 sslmode=disable")
+	db, err := sql.Open("postgres", "user=postgres dbname=bot host=db port=5432 sslmode=disable")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
+	fmt.Println(wikiTitle)
 
 	sqlStatement := `SELECT title FROM pages where title=$1;`
 	rows, err := db.Query(sqlStatement, wikiTitle)
@@ -150,8 +152,6 @@ func getWiki(w http.ResponseWriter, r *http.Request) {
 		}
 
 		json.Unmarshal(body, &jsonBody)
-		// log.Printf(jsonBody.Extract)
-		// w.Write([]byte(fmt.Sprintf(jsonBody.Extract)))
 
 		wikiTitle = jsonBody.Title
 		wikiExtract = jsonBody.Extract
