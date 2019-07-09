@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  go-wiki:
+    build: .
+    ports:
+      - "8080:8080"
+    links:
+      - db
+
+  db:
+    image: postgres:9.6-alpine
+    ports:
+      - "5432:5432"
