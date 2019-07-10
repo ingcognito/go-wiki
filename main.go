@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -9,13 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
-	"regexp"
-	"strings"
-	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"github.com/nlopes/slack"
 )
@@ -68,96 +62,57 @@ type wikiPage struct {
 }
 
 func main() {
-	// Create Server and Route Handlers
-	r := mux.NewRouter()
-
-	r.HandleFunc("/getwiki", getWiki)
-
-	srv := &http.Server{
-		Handler:      r,
-		Addr:         ":8080",
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-	}
-
-	// Start Server
-	go func() {
-		log.Println("Starting Server, it's alive!")
-		if err := srv.ListenAndServe(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	// Graceful Shutdown
-	waitForShutdown(srv)
 
 	//Slack
-	token := "xoxp-635227745970-647965568001-675714514899-6faeca738b8fefb3ea4a21f4953054c7"
-	api := slack.New(token)
+	api := slack.New(
+		"xoxb-635227745970-678958669186-tfnxO0JPkPM80IJKGg27kjMn", //environment variable
+		slack.OptionDebug(true),
+		slack.OptionLog(log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)),
+	)
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
 
-Loop:
-	for {
-		select {
-		case msg := <-rtm.IncomingEvents:
-			fmt.Print("Event Received: ")
-			switch ev := msg.Data.(type) {
+	for msg := range rtm.IncomingEvents {
+		fmt.Print("Event Received: ")
+		switch ev := msg.Data.(type) {
+		case *slack.HelloEvent:
+			// Ignore hello
 
-			case *slack.MessageEvent:
-				info := rtm.GetInfo()
+		case *slack.ConnectedEvent:
+			fmt.Println("Infos:", ev.Info)
+			fmt.Println("Connection counter:", ev.ConnectionCount)
+			// Make this an environment variable
+			rtm.SendMessage(rtm.NewOutgoingMessage("Hello world", "CKYU39XPC"))
 
-				text := ev.Text
-				text = strings.TrimSpace(text)
-				text = strings.ToLower(text)
+		case *slack.MessageEvent:
+			fmt.Printf("Message: %v\n", ev)
+			rtm.SendMessage(rtm.NewOutgoingMessage(getWiki("Canada"), "CKYU39XPC"))
 
-				matched, _ := regexp.MatchString("dark souls", text)
+		case *slack.PresenceChangeEvent:
+			fmt.Printf("Presence Change: %v\n", ev)
 
-				if ev.User != info.User.ID && matched {
-					rtm.SendMessage(rtm.NewOutgoingMessage("\\[T]/ Praise the Sun \\[T]/", ev.Channel))
-				}
+		case *slack.LatencyReport:
+			fmt.Printf("Current latency: %v\n", ev.Value)
 
-			case *slack.RTMError:
-				fmt.Printf("Error: %s\n", ev.Error())
+		case *slack.RTMError:
+			fmt.Printf("Error: %s\n", ev.Error())
 
-			case *slack.InvalidAuthEvent:
-				fmt.Printf("Invalid credentials")
-				break Loop
+		case *slack.InvalidAuthEvent:
+			fmt.Printf("Invalid credentials")
+			return
 
-			default:
-				// Take no action
-			}
+		default:
+
 		}
 	}
 }
 
-func waitForShutdown(srv *http.Server) {
-	interruptChan := make(chan os.Signal, 1)
-	signal.Notify(interruptChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
-	// Block until we receive our signal.
-	<-interruptChan
-
-	// Create a deadline to wait for.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-	srv.Shutdown(ctx)
-
-	log.Println("Shutting down, goodbye")
-	os.Exit(0)
-}
-
-func getWiki(w http.ResponseWriter, r *http.Request) {
+func getWiki(searchTerm string) string {
 
 	var wikiTitle string
 	var wikiExtract string
 
-	query := r.URL.Query()
-	wikiTitle = strings.Title(query.Get("title"))
-	if wikiTitle == "" {
-		w.Write([]byte(fmt.Sprintf("ENTER A TITLE")))
-		return
-	}
+	wikiTitle = searchTerm
 
 	db, err := sql.Open("postgres", "user=postgres dbname=bot host=db port=5432 sslmode=disable")
 	if err != nil {
@@ -200,6 +155,6 @@ func getWiki(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 	}
-	w.Write([]byte(fmt.Sprintf(wikiExtract)))
 
+	return wikiExtract
 }
