@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -62,15 +63,17 @@ type wikiPage struct {
 }
 
 func main() {
-
 	//Slack
 	api := slack.New(
-		"xoxb-635227745970-678958669186-tfnxO0JPkPM80IJKGg27kjMn", //environment variable
+		"xoxb-635227745970-678958669186-WNGI7loSEba6qLBiihCIWPjN", //environment variable
 		slack.OptionDebug(true),
 		slack.OptionLog(log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)),
 	)
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
+
+	//take in channel messages and listen for @wikibot
+	// parse text after @wikibot then call getwiki
 
 	for msg := range rtm.IncomingEvents {
 		fmt.Print("Event Received: ")
@@ -82,11 +85,20 @@ func main() {
 			fmt.Println("Infos:", ev.Info)
 			fmt.Println("Connection counter:", ev.ConnectionCount)
 			// Make this an environment variable
-			rtm.SendMessage(rtm.NewOutgoingMessage("Hello world", "CKYU39XPC"))
+			//rtm.SendMessage(rtm.NewOutgoingMessage("Hello! I am Go Wiki, a slack bot written in Golang", ev.Channel))
 
 		case *slack.MessageEvent:
 			fmt.Printf("Message: %v\n", ev)
-			rtm.SendMessage(rtm.NewOutgoingMessage(getWiki("Canada"), "CKYU39XPC"))
+
+			text := ev.Text
+			text = strings.ToLower(text)
+
+			if strings.Contains(text, "gowiki") {
+				searchTerm := strings.Trim(text, "gowiki")
+				if searchTerm != "" {
+					rtm.SendMessage(rtm.NewOutgoingMessage(getWiki(searchTerm), ev.Channel))
+				}
+			}
 
 		case *slack.PresenceChangeEvent:
 			fmt.Printf("Presence Change: %v\n", ev)
@@ -105,6 +117,7 @@ func main() {
 
 		}
 	}
+
 }
 
 func getWiki(searchTerm string) string {
