@@ -91,7 +91,7 @@ func main() {
 			text = strings.ToLower(text)
 
 			if strings.Contains(text, "gowiki") {
-				searchTerm := strings.Trim(text, "gowiki")
+				searchTerm := strings.TrimPrefix(text, "gowiki")
 				if searchTerm != "" {
 					extract, link := getWiki(searchTerm)
 					rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprintf("%s `%s`", extract, link), ev.Channel))
