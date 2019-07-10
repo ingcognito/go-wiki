@@ -63,9 +63,13 @@ type wikiPage struct {
 }
 
 func main() {
+
+	//Environment variables
+	slackToken := os.Getenv("GOWIKI_SLACK_TOKEN")
+	fmt.Printf(slackToken)
 	//Slack
 	api := slack.New(
-		"xoxb-635227745970-678958669186-WNGI7loSEba6qLBiihCIWPjN", //environment variable
+		slackToken, //environment variable
 		slack.OptionDebug(true),
 		slack.OptionLog(log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)),
 	)
@@ -122,12 +126,14 @@ func main() {
 
 func getWiki(searchTerm string) string {
 
+	dbConfig := os.Getenv("GOWIKI_DB_CONFIG")
+
 	var wikiTitle string
 	var wikiExtract string
 
 	wikiTitle = searchTerm
 
-	db, err := sql.Open("postgres", "user=postgres dbname=bot host=db port=5432 sslmode=disable")
+	db, err := sql.Open("postgres", dbConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
