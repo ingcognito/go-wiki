@@ -64,20 +64,15 @@ type wikiPage struct {
 
 func main() {
 
-	//Environment variables
 	slackToken := os.Getenv("GOWIKI_SLACK_TOKEN")
-	fmt.Printf(slackToken)
-	//Slack
+
 	api := slack.New(
-		slackToken, //environment variable
+		slackToken,
 		slack.OptionDebug(true),
 		slack.OptionLog(log.New(os.Stdout, "slack-bot: ", log.Lshortfile|log.LstdFlags)),
 	)
 	rtm := api.NewRTM()
 	go rtm.ManageConnection()
-
-	//take in channel messages and listen for @wikibot
-	// parse text after @wikibot then call getwiki
 
 	for msg := range rtm.IncomingEvents {
 		fmt.Print("Event Received: ")
@@ -88,8 +83,6 @@ func main() {
 		case *slack.ConnectedEvent:
 			fmt.Println("Infos:", ev.Info)
 			fmt.Println("Connection counter:", ev.ConnectionCount)
-			// Make this an environment variable
-			//rtm.SendMessage(rtm.NewOutgoingMessage("Hello! I am Go Wiki, a slack bot written in Golang", ev.Channel))
 
 		case *slack.MessageEvent:
 			fmt.Printf("Message: %v\n", ev)
@@ -104,24 +97,10 @@ func main() {
 				}
 			}
 
-		case *slack.PresenceChangeEvent:
-			fmt.Printf("Presence Change: %v\n", ev)
-
-		case *slack.LatencyReport:
-			fmt.Printf("Current latency: %v\n", ev.Value)
-
-		case *slack.RTMError:
-			fmt.Printf("Error: %s\n", ev.Error())
-
-		case *slack.InvalidAuthEvent:
-			fmt.Printf("Invalid credentials")
-			return
-
 		default:
 
 		}
 	}
-
 }
 
 func getWiki(searchTerm string) string {
@@ -138,17 +117,14 @@ func getWiki(searchTerm string) string {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	fmt.Println(wikiTitle)
 
 	sqlStatement := `SELECT title, extract FROM pages where title=$1;`
 	err = db.QueryRow(sqlStatement, wikiTitle).Scan(&wikiTitle, &wikiExtract)
-	fmt.Println(wikiExtract)
-	fmt.Printf("this is coming from the database")
 	if err != nil {
 		log.Println(err)
 	}
 
-	//If database does not contain wiki page then store it
+	//If database does not contain wikiTitle then store it
 	if wikiExtract == "" {
 		resp, err := http.Get(fmt.Sprintf("https://en.wikipedia.org/api/rest_v1/page/summary/%s", wikiTitle))
 		if err != nil {
