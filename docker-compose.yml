@@ -2,6 +2,7 @@ version: '3'
 
 services:
   gowiki:
+    image: go-wiki:latest
     build: .
     ports:
       - "8080:8080"

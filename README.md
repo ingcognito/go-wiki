@@ -27,6 +27,13 @@ docker-compose up
 ```
 This will enable your server to run with a postgres db. You will beable to see the logs.
 
+*Optionally you can also run this in a Docker Swarm using the follow:*
+*```
+docker swarm init
+docker build -t go-wiki .
+docker stack deploy --compose-file=docker-compose.yml go-wiki
+```
+
 **Go to your slack channel and click on + Add App**
 
 <img src="docs/addapp.png" width="300">
