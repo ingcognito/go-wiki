@@ -93,8 +93,12 @@ func main() {
 			if strings.Contains(text, "gowiki") {
 				searchTerm := strings.TrimPrefix(text, "gowiki")
 				if searchTerm != "" {
-					extract, link := getWiki(searchTerm)
-					rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprintf("%s `%s`", extract, link), ev.Channel))
+					extract, link, notFound := getWiki(searchTerm)
+					if notFound == "" {
+						rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprintf("%s `%s`", extract, link), ev.Channel))
+					} else {
+						rtm.SendMessage(rtm.NewOutgoingMessage(fmt.Sprintf("%s", notFound), ev.Channel))
+					}
 				}
 			}
 
@@ -104,13 +108,14 @@ func main() {
 	}
 }
 
-func getWiki(searchTerm string) (string, string) {
+func getWiki(searchTerm string) (string, string, string) {
 
 	dbConfig := os.Getenv("GOWIKI_DB_CONFIG")
 
 	var wikiTitle string
 	var wikiExtract string
 	var desktopPage string
+	var notFound string
 
 	wikiTitle = searchTerm
 
@@ -147,12 +152,16 @@ func getWiki(searchTerm string) (string, string) {
 		wikiExtract = jsonBody.Extract
 		desktopPage = jsonBody.ContentUrls.Desktop.Page
 
-		sqlStatement := `INSERT INTO pages (title, extract, link) VALUES ($1, $2, $3)`
-		_, err = db.Exec(sqlStatement, wikiTitle, wikiExtract, desktopPage)
-		if err != nil {
-			panic(err)
+		if wikiExtract != "" {
+			sqlStatement := `INSERT INTO pages (title, extract, link) VALUES ($1, $2, $3)`
+			_, err = db.Exec(sqlStatement, wikiTitle, wikiExtract, desktopPage)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			notFound = fmt.Sprintf("Sorry, there was an issue searching for %s, please try again.", searchTerm)
 		}
 	}
 
-	return wikiExtract, desktopPage
+	return wikiExtract, desktopPage, notFound
 }
