@@ -91,7 +91,7 @@ func main() {
 			text = strings.ToLower(text)
 
 			if strings.Contains(text, "gowiki") {
-				searchTerm := strings.TrimPrefix(text, "gowiki")
+				searchTerm := strings.TrimSpace(strings.TrimPrefix(text, "gowiki "))
 				if searchTerm != "" {
 					extract, link, notFound := getWiki(searchTerm)
 					if notFound == "" {
