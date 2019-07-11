@@ -27,8 +27,9 @@ docker-compose up
 ```
 This will enable your server to run with a postgres db. You will beable to see the logs.
 
-*Optionally you can also run this in a Docker Swarm using the follow:*
-*```
+*Optionally if you prefer to use Docker swarm you can run this using*
+
+```
 docker swarm init
 docker build -t go-wiki .
 docker stack deploy --compose-file=docker-compose.yml go-wiki
@@ -43,7 +44,7 @@ docker stack deploy --compose-file=docker-compose.yml go-wiki
 <img src="docs/gowikiadd.png" width="300">
 
 
-**Use the command `go wiki` to search a topic you would like to share with your team!** :rocket: 
+**Use the command `gowiki` to search a topic you would like to share with your team!** :rocket: 
 ```
 gowiki Toronto
 ```
